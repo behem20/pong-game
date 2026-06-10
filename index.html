@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script  src="./phaser.min.js"></script>
+    <script type="module" src="./main.js"></script>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: radial-gradient(ellipse at center, #1a2a1a 0%, #0a0f0a 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: sans-serif;
+        overflow: hidden;
+    }
+
+    #game {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow:
+            0 0 0 2px #2d5a1b,
+            0 0 30px rgba(76, 175, 80, 0.25),
+            0 0 80px rgba(76, 175, 80, 0.08);
+    }
+
+    canvas {
+        display: block;
+    }
+</style>
+</head>
+
+<body>
+    <div id="game"></div>
+
+</body>
+
+</html>
