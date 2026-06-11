@@ -5,6 +5,11 @@ export default class GameScene extends Phaser.Scene {
         super('GameScene');
     }
 
+    preload() {
+        if (!this.textures.exists('ball'))   this.load.image('ball',   'assets/ball.png');
+        if (!this.textures.exists('player')) this.load.image('player', 'assets/player.png');
+    }
+
     create(data) {
         this.mode = (data && data.mode) || 'classic';
         this.dw = this.scale.width;

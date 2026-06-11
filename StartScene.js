@@ -4,8 +4,8 @@ export default class StartScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('player', '/assets/player.png');
-        this.load.image('ball', '/assets/ball.png');
+        this.load.image('player', 'assets/player.png');
+        this.load.image('ball', 'assets/ball.png');
     }
 
     create() {
