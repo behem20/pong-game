@@ -78,6 +78,16 @@ export default class StartScene extends Phaser.Scene {
         this.add.text(cx, cy + 108, 'Игрок 1: W / S     Игрок 2: ↑ / ↓', {
             fontSize: '14px', color: '#888888'
         }).setOrigin(0.5).setDepth(6);
+
+        this._buildSettingsBtn(cx, cy);
+        this._buildInfoBtn(cx, cy);
+
+        // Меню-музыка — только если AudioContext уже существует (после первой игры)
+        const snd = this.registry.get('snd');
+        if (snd) {
+            snd.startMusic('menu');
+            this.events.on('shutdown', () => snd.stopMusic());
+        }
     }
 
     _makeButton(x, y, label, fillColor, strokeColor, delay, onClick) {
@@ -89,12 +99,217 @@ export default class StartScene extends Phaser.Scene {
             fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(6);
 
-        btn.on('pointerover', () => { btn.setScale(1.07); txt.setScale(1.07); });
-        btn.on('pointerout',  () => { btn.setScale(1);    txt.setScale(1); });
+        btn.on('pointerover', () => {
+            btn.setScale(1.07); txt.setScale(1.07);
+            const snd = this.registry.get('snd'); if (snd) snd.hover();
+        });
+        btn.on('pointerout',  () => { btn.setScale(1); txt.setScale(1); });
         btn.on('pointerdown', onClick);
 
         btn.setScale(0); txt.setScale(0);
         this.tweens.add({ targets: [btn, txt], scale: 1, duration: 500, ease: 'Back.Out', delay });
+    }
+
+    _buildSettingsBtn(cx, cy) {
+        const btn = this.add.text(cx, cy + 152, 'НАСТРОЙКИ', {
+            fontSize: '15px', color: '#666666',
+            backgroundColor: '#111111',
+            padding: { x: 10, y: 6 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(6);
+
+        btn.on('pointerover', () => {
+            btn.setStyle({ color: '#bbbbbb' });
+            const snd = this.registry.get('snd'); if (snd) snd.hover();
+        });
+        btn.on('pointerout',  () => btn.setStyle({ color: '#666666' }));
+        btn.on('pointerdown', () => this._openSettings(cx, cy));
+
+        btn.setScale(0);
+        this.tweens.add({ targets: btn, scale: 1, duration: 500, ease: 'Back.Out', delay: 200 });
+    }
+
+    _openSettings(cx, cy) {
+        if (this.settingsOpen) return;
+        this.settingsOpen = true;
+
+        const backdrop = this.add.rectangle(cx, cy, this.dw, this.dh, 0x000000, 0.7)
+            .setDepth(15).setInteractive()
+            .on('pointerdown', () => closePanel());
+
+        const panel = this.add.rectangle(cx, cy, 300, 210, 0x111122, 0.95)
+            .setStrokeStyle(2, 0x334477).setDepth(16).setInteractive();
+
+        const title = this.add.text(cx, cy - 72, 'НАСТРОЙКИ', {
+            fontSize: '22px', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(17);
+
+        const soundOn = this.registry.get('soundOn') ?? true;
+        const soundBtn = this.add.text(cx, cy + 2, soundOn ? 'Звук: ВКЛ' : 'Звук: ВЫКЛ', {
+            fontSize: '20px', color: '#ffffff',
+            backgroundColor: '#333344',
+            padding: { x: 18, y: 10 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(17);
+
+        soundBtn.on('pointerover', () => {
+            soundBtn.setStyle({ color: '#ffdd00' });
+            const snd = this.registry.get('snd'); if (snd) snd.hover();
+        });
+        soundBtn.on('pointerout',  () => soundBtn.setStyle({ color: '#ffffff' }));
+        soundBtn.on('pointerdown', () => {
+            const cur = this.registry.get('soundOn') ?? true;
+            this.registry.set('soundOn', !cur);
+            soundBtn.setText(!cur ? 'Звук: ВКЛ' : 'Звук: ВЫКЛ');
+            const snd = this.registry.get('snd');
+            if (snd) snd.syncVolume();
+        });
+
+        const stub = this.add.text(cx, cy + 57, '(звук в разработке)', {
+            fontSize: '13px', color: '#44445a'
+        }).setOrigin(0.5).setDepth(17);
+
+        const closeBtn = this.add.text(cx, cy + 85, 'ЗАКРЫТЬ', {
+            fontSize: '15px', color: '#888888',
+            backgroundColor: '#222222',
+            padding: { x: 14, y: 7 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(17);
+
+        closeBtn.on('pointerover', () => {
+            closeBtn.setStyle({ color: '#ffffff' });
+            const snd = this.registry.get('snd'); if (snd) snd.hover();
+        });
+        closeBtn.on('pointerout',  () => closeBtn.setStyle({ color: '#888888' }));
+        closeBtn.on('pointerdown', () => closePanel());
+
+        const elements = [backdrop, panel, title, soundBtn, stub, closeBtn];
+
+        const closePanel = () => {
+            if (!this.settingsOpen) return;
+            this.settingsOpen = false;
+            elements.forEach(e => e.destroy());
+        };
+    }
+
+    _buildInfoBtn(cx, cy) {
+        const btn = this.add.text(cx, cy + 186, 'ПРАВИЛА', {
+            fontSize: '15px', color: '#666666',
+            backgroundColor: '#111111',
+            padding: { x: 10, y: 6 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(6);
+
+        btn.on('pointerover', () => {
+            btn.setStyle({ color: '#bbbbbb' });
+            const snd = this.registry.get('snd'); if (snd) snd.hover();
+        });
+        btn.on('pointerout',  () => btn.setStyle({ color: '#666666' }));
+        btn.on('pointerdown', () => this._openInfo(cx, cy));
+
+        btn.setScale(0);
+        this.tweens.add({ targets: btn, scale: 1, duration: 500, ease: 'Back.Out', delay: 300 });
+    }
+
+    _openInfo(cx, cy) {
+        if (this.infoOpen) return;
+        this.infoOpen = true;
+
+        const PW = 570, PH = 470;
+        const TL = cx - PW / 2 + 28; // левый край текста
+        const elems = [];
+
+        const backdrop = this.add.rectangle(cx, cy, this.dw, this.dh, 0x000000, 0.84)
+            .setDepth(15).setInteractive().on('pointerdown', () => close());
+        const panel = this.add.rectangle(cx, cy, PW, PH, 0x080d18, 0.97)
+            .setStrokeStyle(2, 0x1e3566).setDepth(16).setInteractive();
+        elems.push(backdrop, panel);
+
+        const D = 17; // depth для всех элементов панели
+        const t = (x, y, str, style) =>
+            elems.push(this.add.text(x, y, str, style).setDepth(D)) && elems[elems.length - 1];
+
+        // ── Заголовок
+        t(cx, cy - 218, 'КАК ИГРАТЬ', {
+            fontSize: '22px', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+
+        t(cx, cy - 192, 'Игрок 1: W / S     |     Игрок 2: ↑ / ↓     |     Пауза: Пробел или клик', {
+            fontSize: '12px', color: '#3d4f60'
+        }).setOrigin(0.5, 0);
+
+        // ── Классика
+        t(TL, cy - 164, 'КЛАССИЧЕСКИЙ МОД', {
+            fontSize: '14px', color: '#4caf50', fontStyle: 'bold'
+        });
+        t(TL + 10, cy - 146, 'Первый до 7 очков побеждает.', {
+            fontSize: '13px', color: '#6b8899'
+        });
+        t(TL + 10, cy - 129, 'Скорость мяча увеличивается после каждого удара о ракетку.', {
+            fontSize: '13px', color: '#6b8899'
+        });
+
+        // ── С фичами
+        t(TL, cy - 102, 'МОД С ФИЧАМИ', {
+            fontSize: '14px', color: '#4488ff', fontStyle: 'bold'
+        });
+        t(TL + 10, cy - 84, 'Те же правила, но иногда на поле появляется', {
+            fontSize: '13px', color: '#6b8899'
+        });
+        t(TL + 10, cy - 67, 'случайный паверап. Мяч должен коснуться его, чтобы активировать.', {
+            fontSize: '13px', color: '#6b8899'
+        });
+        t(TL + 10, cy - 50, 'Паверап всегда забирает тот игрок, чьим ударом мяч его подобрал.', {
+            fontSize: '13px', color: '#6b8899'
+        });
+
+        // ── Разделитель
+        const line = this.add.graphics().setDepth(D);
+        line.lineStyle(1, 0x1e3566, 0.8);
+        line.lineBetween(TL, cy - 25, cx + PW / 2 - 28, cy - 25);
+        elems.push(line);
+
+        // ── Паверапы
+        t(cx, cy - 12, 'ПАВЕРАПЫ', {
+            fontSize: '14px', color: '#99aabb', fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+
+        const MID = cx + 14;
+        const PU = [
+            { x: TL,  y: cy + 14, sym: '⚡', label: 'СКОРОСТЬ',   desc: 'ракетка быстрее на 7 сек',       col: '#00ffcc' },
+            { x: MID, y: cy + 14, sym: '↕',  label: 'РАСШИРЕНИЕ', desc: 'ракетка длиннее на 7 сек',       col: '#ffcc00' },
+            { x: TL,  y: cy + 64, sym: '❄',  label: 'ЗАМОРОЗКА',  desc: 'соперник замедлен на 7 сек',     col: '#55aaff' },
+            { x: MID, y: cy + 64, sym: '🔥', label: 'ОГОНЬ',      desc: 'сразу очко (редкий бонус)',   col: '#ff7722' },
+        ];
+        PU.forEach(p => {
+            t(p.x, p.y, p.sym + '  ' + p.label, {
+                fontSize: '14px', color: p.col, fontStyle: 'bold'
+            });
+            t(p.x + 10, p.y + 20, p.desc, {
+                fontSize: '12px', color: '#485a6a'
+            });
+        });
+
+        // ── Подсказка статус-бара
+        t(cx, cy + 124, 'Активные эффекты видны под счётом каждого игрока в виде иконки и полосы.', {
+            fontSize: '12px', color: '#2e3d4a'
+        }).setOrigin(0.5, 0);
+
+        // ── Закрыть
+        const closeBtn = this.add.text(cx, cy + 208, 'ЗАКРЫТЬ', {
+            fontSize: '15px', color: '#667788',
+            backgroundColor: '#0d1420',
+            padding: { x: 16, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(D);
+        closeBtn.on('pointerover', () => {
+            closeBtn.setStyle({ color: '#ffffff' });
+            const snd = this.registry.get('snd'); if (snd) snd.hover();
+        });
+        closeBtn.on('pointerout',  () => closeBtn.setStyle({ color: '#667788' }));
+        closeBtn.on('pointerdown', () => close());
+        elems.push(closeBtn);
+
+        const close = () => {
+            if (!this.infoOpen) return;
+            this.infoOpen = false;
+            elems.forEach(e => e.destroy());
+        };
     }
 
     _resetBall(cx, cy) {
