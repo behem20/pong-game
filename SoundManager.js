@@ -192,14 +192,101 @@ export default class SoundManager {
         this.stopMusic();
         this._musicPlaying = true;
         this._musicType    = type;
-        const ctx     = this._ctx();
-        const beatDur = type === 'menu' ? MENU_BEAT : this._beatDur;
-        this._scheduleLoop(ctx.currentTime + 0.05, type, beatDur);
+        if (type === 'game') {
+            this._startDrone();
+        } else {
+            const ctx = this._ctx();
+            this._scheduleLoop(ctx.currentTime + 0.05, type, MENU_BEAT);
+        }
     }
 
     stopMusic() {
         this._musicPlaying = false;
         clearTimeout(this._musicTimer);
+        this._stopDrone();
+    }
+
+    // ── Atmospheric drone (game music) ─────────────────────────────────────
+
+    _startDrone() {
+        const ctx = this._ctx();
+
+        // Мастер-гейн — плавное появление
+        const dGain = ctx.createGain();
+        dGain.gain.setValueAtTime(0, ctx.currentTime);
+        dGain.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 4.0);
+        dGain.connect(this.musicGain);
+
+        this._droneGain = dGain;
+        this._droneBeat = 0.78; // ~77 BPM — спокойный темп
+        this._schedulePad(ctx.currentTime + 0.1);
+    }
+
+    _schedulePad(loopStart) {
+        if (!this._droneGain) return;
+        const ctx = this._ctx();
+        const B   = this._droneBeat;
+        const dg  = this._droneGain;
+
+        // G мажор — ноты расцветают и гаснут как лепестки, создавая текущий поток
+        // [freq, beatStart, durBeats, peakVol]
+        const notes = [
+            [392.0, 0.0, 3.2, 0.052], // G4  — основа
+            [493.9, 1.5, 3.2, 0.042], // B4  — мажорная терция
+            [587.3, 3.0, 3.2, 0.040], // D5  — квинта
+            [784.0, 4.5, 2.8, 0.028], // G5  — shimmer
+            [493.9, 5.0, 3.2, 0.038], // B4  — возврат
+            [392.0, 6.5, 3.2, 0.044], // G4  — завершение круга
+        ];
+
+        notes.forEach(([freq, beatOff, durBeats, vol]) => {
+            const osc  = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(dg);
+
+            const t0  = loopStart + beatOff * B;
+            const dur = durBeats * B;
+            const atk = 0.55 * B; // плавная атака
+
+            gain.gain.setValueAtTime(0.0001, t0);
+            gain.gain.linearRampToValueAtTime(vol, t0 + atk);
+            gain.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+
+            // Лёгкое вибрато — убирает «мёртвый» цифровой звук
+            const vib  = ctx.createOscillator();
+            const vibG = ctx.createGain();
+            vib.type = 'sine';
+            vib.frequency.value = 5.2;
+            vibG.gain.value = 1.8;
+            vib.connect(vibG);
+            vibG.connect(osc.frequency);
+            vib.start(t0);
+            vib.stop(t0 + dur + 0.1);
+
+            osc.start(t0);
+            osc.stop(t0 + dur + 0.1);
+        });
+
+        const loopDur = 8 * B;
+        const ms = (loopStart + loopDur - ctx.currentTime - 0.12) * 1000;
+        this._musicTimer = setTimeout(
+            () => this._schedulePad(loopStart + loopDur),
+            Math.max(0, ms)
+        );
+    }
+
+    _stopDrone() {
+        if (!this._droneGain) return;
+        const ctx = this._ctx();
+        const dg  = this._droneGain;
+        const t   = ctx.currentTime;
+        dg.gain.cancelScheduledValues(t);
+        dg.gain.setValueAtTime(dg.gain.value, t);
+        dg.gain.linearRampToValueAtTime(0, t + 2.0);
+        this._droneGain = null;
     }
 
     _scheduleLoop(loopStart, type, beatDur) {

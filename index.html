@@ -3,9 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Document</title>
-    <script  src="./phaser.min.js"></script>
+    <script src="./phaser.min.js"></script>
+    <script src="./rexvirtualjoystickplugin.min.js"></script>
     <script type="module" src="./main.js"></script>
     <style>
     * {
@@ -14,32 +15,87 @@
         box-sizing: border-box;
     }
 
-    body {
-        background: radial-gradient(ellipse at center, #1a2a1a 0%, #0a0f0a 100%);
-        min-height: 100vh;
-        display: flex;
+    html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        touch-action: none;
+        background: radial-gradient(ellipse at center, #0d0d22 0%, #05050d 100%);
+    }
+
+    #rotate-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: #05050d;
+        z-index: 9999;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        color: #fff;
         font-family: sans-serif;
-        overflow: hidden;
+        text-align: center;
+        gap: 18px;
+    }
+    @media (orientation: portrait) {
+        #rotate-overlay { display: flex; }
+    }
+    #rotate-overlay .icon {
+        font-size: 56px;
+        animation: rot 1.6s ease-in-out infinite;
+    }
+    @keyframes rot {
+        0%   { transform: rotate(0deg); }
+        40%  { transform: rotate(90deg); }
+        60%  { transform: rotate(90deg); }
+        100% { transform: rotate(0deg); }
+    }
+    #rotate-overlay p {
+        font-size: 20px;
+        opacity: 0.85;
+        max-width: 260px;
+        line-height: 1.4;
     }
 
     #game {
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow:
-            0 0 0 2px #2d5a1b,
-            0 0 30px rgba(76, 175, 80, 0.25),
-            0 0 80px rgba(76, 175, 80, 0.08);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
     }
 
     canvas {
         display: block;
+        touch-action: none;
+        user-select: none;
+        /* На десктопе — лёгкое обрамление; на мобильном убираем отступы */
+        border-radius: 6px;
+        box-shadow:
+            0 0 0 1px #1a1a3a,
+            0 0 40px rgba(60, 80, 200, 0.18),
+            0 0 100px rgba(40, 60, 160, 0.08);
+    }
+    @media (pointer: coarse) {
+        /* Мобильный: canvas занимает весь экран без скруглений */
+        canvas {
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            /* Растягиваем до краёв — Phaser FIT уже держит соотношение,
+               max-width/height убирают мёртвые зоны при дробном масштабе */
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+        }
     }
 </style>
 </head>
 
 <body>
+    <div id="rotate-overlay">
+        <div class="icon">📱</div>
+        <p>Поверните телефон горизонтально</p>
+    </div>
     <div id="game"></div>
 
 </body>
